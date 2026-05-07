@@ -1,0 +1,22 @@
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Python bytecode
+__pycache__/
+*.pyc
+*.pyo
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Logs
+*.log
