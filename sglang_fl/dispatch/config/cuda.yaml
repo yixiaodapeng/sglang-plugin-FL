@@ -1,0 +1,3 @@
+# Default configuration for CUDA platform
+prefer: flagos
+strict: false

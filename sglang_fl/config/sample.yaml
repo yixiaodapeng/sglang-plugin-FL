@@ -1,0 +1,49 @@
+# ─── sglang_fl Dispatch Configuration ────────────────────────
+#
+# Usage:
+#   SGLANG_FL_CONFIG=/path/to/this/file.yaml python -m sglang.launch_server ...
+#
+# If SGLANG_FL_CONFIG is not set, the plugin auto-detects the platform
+# and loads config/cuda.yaml or config/ascend.yaml.
+#
+# Priority chain:
+#   Environment variables (SGLANG_FL_*, SGLANG_FLAGGEMS_*)
+#     > YAML config file (this file)
+#       > Code defaults
+#
+
+# ─── Global Backend Preference ──────────────────────────────────────
+# Which backend to prefer for Layer 2 fused ops: flagos | vendor | reference
+prefer: flagos
+
+# ─── Per-Op Backend Priority ────────────────────────────────────────
+# Ordered list per op: try left-to-right, first available wins.
+# Each op can list 1–3 backends from: flagos, vendor, reference.
+# Ops not listed here use the global `prefer` setting.
+op_backends:
+  RMSNorm: [vendor, flagos, reference]
+  SiluAndMul: [flagos, vendor, reference]
+  # RotaryEmbedding: [flagos, reference]
+
+# ─── OOT Blacklist (Layer 2) ────────────────────────────────────────
+# Fused ops to skip from OOT dispatch (fall through to SGLang native CUDA).
+# Available op names: SiluAndMul, RMSNorm, RotaryEmbedding
+oot_blacklist:
+  - RotaryEmbedding
+  # - SiluAndMul
+  # - RMSNorm
+
+# ─── FlagGems Blacklist (Layer 1) ───────────────────────────────────
+# ATen ops to exclude from FlagGems Triton replacement
+# (fall through to PyTorch native / vendor CUDA kernels).
+#
+# To see which ATen ops are actually replaced during inference:
+#   SGLANG_FLAGGEMS_RECORD=1 SGLANG_FLAGGEMS_LOG_PATH=/tmp/gems_aten.txt \
+#     python -m sglang.launch_server ...
+#   sort -u /tmp/gems_aten.txt
+flagos_blacklist:
+  - mul
+  - sub
+  # - reciprocal
+  # - embedding
+  # - addmm

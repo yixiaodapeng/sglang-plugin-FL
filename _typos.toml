@@ -1,0 +1,4 @@
+[default.extend-words]
+# Ascend CANN is Huawei's official toolkit name
+CANN = "CANN"
+cann = "cann"

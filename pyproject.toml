@@ -3,7 +3,7 @@ requires = ["setuptools>=64"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "sglang_plugin_FL"
+name = "sglang_fl"
 version = "0.1.0"
 description = "SGLang OOT Plugin — FlagGems-based multi-chip adaptation"
 requires-python = ">=3.8"
@@ -13,13 +13,13 @@ dependencies = [
 ]
 
 [project.entry-points."sglang.srt.platforms"]
-sglang_plugin_FL = "sglang_plugin_FL:activate_platform"
+sglang_fl = "sglang_fl:activate_platform"
 
 [project.entry-points."sglang.srt.plugins"]
-sglang_plugin_FL = "sglang_plugin_FL:load_plugin"
+sglang_fl = "sglang_fl:load_plugin"
 
 [tool.setuptools.packages.find]
-include = ["sglang_plugin_FL*"]
+include = ["sglang_fl*"]
 
 [tool.setuptools.package-data]
-"sglang_plugin_FL.config" = ["*.yaml"]
+"sglang_fl.config" = ["*.yaml"]
