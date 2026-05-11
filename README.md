@@ -169,8 +169,8 @@ prefer: flagos
 
 # Per-op backend priority (ordered list, first available wins)
 op_backends:
-  RMSNorm: [vendor, flagos, reference]
-  SiluAndMul: [flagos, vendor, reference]
+  rms_norm: [vendor, flagos, reference]
+  silu_and_mul: [flagos, vendor, reference]
 
 # Layer 2 fused ops to skip (fall through to SGLang native CUDA)
 # Available: SiluAndMul, RMSNorm, RotaryEmbedding
@@ -211,7 +211,7 @@ Expected dispatch log: only SiluAndMul and RMSNorm appear, no RotaryEmbedding.
 # my_config.yaml
 prefer: flagos
 op_backends:
-  RMSNorm: [vendor, flagos, reference]
+  rms_norm: [vendor, flagos, reference]
 ```
 
 Expected dispatch log: `RMSNorm → vendor(vendor.nvidia)`, `SiluAndMul → flagos(flagos)`.
@@ -241,8 +241,8 @@ SGLANG_FL_* env vars > YAML config (SGLANG_FL_CONFIG) > Platform auto-detect YAM
 | `SGLANG_FL_OOT_ENABLED` | `1` | Master switch: `0` disables Layer 2 (keeps Layer 1 ATen active) |
 | `SGLANG_FL_PREFER` | `flagos` | Global backend preference: `flagos`, `vendor`, `reference` |
 | `SGLANG_FL_PER_OP` | — | Per-op backend priority, e.g. `rms_norm=vendor\|flagos;silu_and_mul=reference` |
-| `SGLANG_FL_BLACKLIST` | — | Skip listed ops from OOT dispatch (comma-separated class names) |
-| `SGLANG_FL_WHITELIST` | — | Only dispatch listed ops (mutually exclusive with BLACKLIST) |
+| `SGLANG_FL_OOT_BLACKLIST` | — | Skip listed ops from OOT dispatch (comma-separated class names) |
+| `SGLANG_FL_OOT_WHITELIST` | — | Only dispatch listed ops (mutually exclusive with BLACKLIST) |
 | `SGLANG_FL_STRICT` | `0` | `1` = disable fallback (error if preferred backend unavailable) |
 | `SGLANG_FL_DENY_VENDORS` | — | Deny specific vendors (comma-separated, e.g. `cuda,ascend`) |
 | `SGLANG_FL_ALLOW_VENDORS` | — | Allow only listed vendors (comma-separated) |
@@ -292,7 +292,7 @@ SGLANG_FL_PER_OP="rms_norm=vendor|flagos;silu_and_mul=flagos" \
     --port 30000 --disable-piecewise-cuda-graph
 
 # Skip RotaryEmbedding from OOT dispatch (fall through to SGLang native CUDA)
-SGLANG_FL_BLACKLIST=RotaryEmbedding python -m sglang.launch_server \
+SGLANG_FL_OOT_BLACKLIST=RotaryEmbedding python -m sglang.launch_server \
     --model-path Qwen/Qwen2.5-0.5B-Instruct \
     --port 30000 --disable-piecewise-cuda-graph
 

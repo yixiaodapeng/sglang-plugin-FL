@@ -28,8 +28,8 @@ Environment variables:
   SGLANG_FL_PREFER=flagos|vendor|reference  Global backend priority
   SGLANG_FL_PER_OP=op=kind|kind;...         Per-op backend override
   SGLANG_FL_STRICT=1|0                Fallback on error (default: 1=enabled)
-  SGLANG_FL_WHITELIST=op1,op2         Only dispatch listed ops through OOT
-  SGLANG_FL_BLACKLIST=op1,op2         Skip listed ops from OOT dispatch
+  SGLANG_FL_OOT_WHITELIST=op1,op2     Only dispatch listed ops through OOT
+  SGLANG_FL_OOT_BLACKLIST=op1,op2     Skip listed ops from OOT dispatch
   SGLANG_FL_DENY_VENDORS=v1,v2       Deny specific vendor backends
   SGLANG_FL_ALLOW_VENDORS=v1,v2      Only allow these vendor backends
   SGLANG_FL_DISPATCH_LOG=<path>       Dispatch log file path
@@ -124,14 +124,14 @@ def _build_config() -> dict:
                 if isinstance(v, str):
                     op_backends[k] = [v]
 
-    # blacklist: SGLANG_FL_BLACKLIST > yaml.oot_blacklist > []
-    blacklist_str = os.environ.get("SGLANG_FL_BLACKLIST", "").strip()
+    # blacklist: SGLANG_FL_OOT_BLACKLIST > yaml.oot_blacklist > []
+    blacklist_str = os.environ.get("SGLANG_FL_OOT_BLACKLIST", "").strip()
     if blacklist_str:
         oot_blacklist = _parse_list(blacklist_str)
     else:
         oot_blacklist = yaml_cfg.get("oot_blacklist", []) or []
 
-    oot_whitelist = _parse_list(os.environ.get("SGLANG_FL_WHITELIST", ""))
+    oot_whitelist = _parse_list(os.environ.get("SGLANG_FL_OOT_WHITELIST", ""))
 
     # flagos_blacklist: SGLANG_FL_FLAGOS_BLACKLIST > yaml.flagos_blacklist > []
     flagos_bl_str = os.environ.get("SGLANG_FL_FLAGOS_BLACKLIST", "").strip()
@@ -205,7 +205,8 @@ def _init_dispatch(config: dict) -> None:
     op_backends = config.get("op_backends", {})
 
     # Convert op_backends format to per_op_order
-    # op_backends: {"silu_and_mul": ["vendor", "flagos"]} -> per_op_order
+    # op_backends: {"rms_norm": ["vendor", "flagos"]} -> per_op_order
+    # Also accepts class names for backward compatibility: {"RMSNorm": [...]}
     per_op_order = {}
     if op_backends:
         _CLASS_TO_OP = {
@@ -214,7 +215,7 @@ def _init_dispatch(config: dict) -> None:
             "RotaryEmbedding": "rotary_embedding",
         }
         for key, val in op_backends.items():
-            op_name = _CLASS_TO_OP.get(key, key)
+            op_name = _CLASS_TO_OP.get(key, key)  # class name -> op_name, or keep as-is
             per_op_order[op_name] = val if isinstance(val, list) else [val]
 
     policy = SelectionPolicy.from_dict(
@@ -241,8 +242,8 @@ def _make_dispatch_hook(config: dict = None):
     the original SGLang dispatch logic (CUDA/HIP/etc.).
 
     Respects config["oot_whitelist"] / config["oot_blacklist"]:
-      - WHITELIST: only listed ops use OOT dispatch (comma-separated class names)
-      - BLACKLIST: listed ops skip OOT dispatch (comma-separated class names)
+      - OOT_WHITELIST: only listed ops use OOT dispatch (comma-separated class names)
+      - OOT_BLACKLIST: listed ops skip OOT dispatch (comma-separated class names)
       - Cannot set both simultaneously.
       - Empty (default): all registered ops use OOT dispatch.
     """
@@ -257,8 +258,8 @@ def _make_dispatch_hook(config: dict = None):
 
     if config is None:
         dispatch_log_path = os.environ.get("SGLANG_FL_DISPATCH_LOG", "").strip()
-        whitelist = _parse_list(os.environ.get("SGLANG_FL_WHITELIST", ""))
-        blacklist = _parse_list(os.environ.get("SGLANG_FL_BLACKLIST", ""))
+        whitelist = _parse_list(os.environ.get("SGLANG_FL_OOT_WHITELIST", ""))
+        blacklist = _parse_list(os.environ.get("SGLANG_FL_OOT_BLACKLIST", ""))
     else:
         dispatch_log_path = config.get("dispatch_log", "")
         whitelist = config.get("oot_whitelist", [])
@@ -267,7 +268,7 @@ def _make_dispatch_hook(config: dict = None):
     _log_file = open(dispatch_log_path, "a") if dispatch_log_path else None
     if whitelist and blacklist:
         raise ValueError(
-            "Cannot set both SGLANG_FL_WHITELIST and SGLANG_FL_BLACKLIST. "
+            "Cannot set both SGLANG_FL_OOT_WHITELIST and SGLANG_FL_OOT_BLACKLIST. "
             "Use one or the other."
         )
     if whitelist:

@@ -21,9 +21,9 @@ prefer: flagos
 # Each op can list 1–3 backends from: flagos, vendor, reference.
 # Ops not listed here use the global `prefer` setting.
 op_backends:
-  RMSNorm: [vendor, flagos, reference]
-  SiluAndMul: [flagos, vendor, reference]
-  # RotaryEmbedding: [flagos, reference]
+  rms_norm: [vendor, flagos, reference]
+  silu_and_mul: [flagos, vendor, reference]
+  # rotary_embedding: [flagos, reference]
 
 # ─── OOT Blacklist (Layer 2) ────────────────────────────────────────
 # Fused ops to skip from OOT dispatch (fall through to SGLang native CUDA).

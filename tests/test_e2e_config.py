@@ -623,22 +623,22 @@ TESTS: List[TestCase] = [
         },
         verify=_verify_per_op,
     ),
-    # ═══ Layer 2: SGLANG_FL_BLACKLIST ═════════════════════════════════════════
+    # ═══ Layer 2: SGLANG_FL_OOT_BLACKLIST ═════════════════════════════════════
     TestCase(
         name="blacklist",
-        description="SGLANG_FL_BLACKLIST=RotaryEmbedding → RotaryEmbedding skipped",
+        description="SGLANG_FL_OOT_BLACKLIST=RotaryEmbedding → RotaryEmbedding skipped",
         env={
-            "SGLANG_FL_BLACKLIST": "RotaryEmbedding",
+            "SGLANG_FL_OOT_BLACKLIST": "RotaryEmbedding",
             "SGLANG_FL_DISPATCH_LOG": "/tmp/test_e2e_dispatch.log",
         },
         verify=_verify_blacklist,
     ),
-    # ═══ Layer 2: SGLANG_FL_WHITELIST ═════════════════════════════════════════
+    # ═══ Layer 2: SGLANG_FL_OOT_WHITELIST ═════════════════════════════════════
     TestCase(
         name="whitelist",
-        description="SGLANG_FL_WHITELIST=RMSNorm → only RMSNorm dispatched",
+        description="SGLANG_FL_OOT_WHITELIST=RMSNorm → only RMSNorm dispatched",
         env={
-            "SGLANG_FL_WHITELIST": "RMSNorm",
+            "SGLANG_FL_OOT_WHITELIST": "RMSNorm",
             "SGLANG_FL_DISPATCH_LOG": "/tmp/test_e2e_dispatch.log",
         },
         verify=_verify_whitelist,
@@ -674,13 +674,13 @@ TESTS: List[TestCase] = [
         },
         verify=_verify_deny_vendors,
     ),
-    # ═══ Layer 2: WHITELIST + BLACKLIST conflict ══════════════════════════════
+    # ═══ Layer 2: OOT_WHITELIST + OOT_BLACKLIST conflict ═══════════════════════
     TestCase(
         name="whitelist-blacklist-conflict",
-        description="WHITELIST + BLACKLIST both set → plugin fails, server runs vanilla",
+        description="OOT_WHITELIST + OOT_BLACKLIST both set → plugin fails, server runs vanilla",
         env={
-            "SGLANG_FL_WHITELIST": "RMSNorm",
-            "SGLANG_FL_BLACKLIST": "RotaryEmbedding",
+            "SGLANG_FL_OOT_WHITELIST": "RMSNorm",
+            "SGLANG_FL_OOT_BLACKLIST": "RotaryEmbedding",
             "SGLANG_FL_DISPATCH_LOG": "/tmp/test_e2e_dispatch.log",
         },
         verify=_verify_conflict_error,
@@ -751,8 +751,8 @@ TESTS: List[TestCase] = [
     ),
     TestCase(
         name="yaml-op-backends",
-        description="YAML op_backends RMSNorm=[reference,flagos] → RMSNorm uses reference",
-        yaml_content="prefer: flagos\nop_backends:\n  RMSNorm: [reference, flagos]\n",
+        description="YAML op_backends rms_norm=[reference,flagos] → RMSNorm uses reference",
+        yaml_content="prefer: flagos\nop_backends:\n  rms_norm: [reference, flagos]\n",
         env={
             "SGLANG_FL_DISPATCH_LOG": "/tmp/test_e2e_dispatch.log",
         },
