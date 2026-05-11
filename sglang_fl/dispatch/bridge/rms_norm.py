@@ -1,4 +1,4 @@
-# Glue: RMSNorm
+# Bridge: RMSNorm
 #
 # SGLang signature:
 #   forward_cuda(self, x, residual=None, post_residual_addition=None)
@@ -19,7 +19,7 @@ import torch
 from sglang_fl.dispatch import call_op
 
 
-def rms_norm_glue(
+def rms_norm_bridge(
     self,
     x: torch.Tensor,
     residual: Optional[torch.Tensor] = None,

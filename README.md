@@ -541,7 +541,7 @@ sglang_fl/
         ├── builtin_ops.py            # Registration orchestrator
         ├── ops.py                    # FLBackendBase ABC (op signature definitions)
         ├── logger_manager.py         # Logging with SGLANG_FL_LOG_LEVEL
-        ├── glue/                     # SGLang ↔ dispatch parameter translation
+        ├── bridge/                   # SGLang ↔ dispatch parameter translation
         │   ├── __init__.py
         │   ├── silu_and_mul.py       # forward_cuda(self, x) → call_op("silu_and_mul", obj, x)
         │   ├── rms_norm.py           # Handles post_residual_addition
@@ -586,24 +586,24 @@ The core mechanism uses an AROUND hook on `MultiPlatformOp.dispatch_forward()` c
 dispatch_forward() called for an op (e.g. RMSNorm)
   → AROUND hook intercepts
     → Check OOT_WHITELIST/OOT_BLACKLIST
-    → Find glue function via MRO (RMSNorm → rms_norm_glue)
-    → Return glue function as the forward method
-  → SGLang calls the glue function with framework args:
-      rms_norm_glue(self, x, residual, post_residual_addition)
-    → Glue handles SGLang-specific params (post_residual_addition → merge into residual)
-    → Glue calls dispatch.call_op("rms_norm", obj, x, residual)
+    → Find bridge function via MRO (RMSNorm → rms_norm_bridge)
+    → Return bridge function as the forward method
+  → SGLang calls the bridge function with framework args:
+      rms_norm_bridge(self, x, residual, post_residual_addition)
+    → Bridge handles SGLang-specific params (post_residual_addition → merge into residual)
+    → Bridge calls dispatch.call_op("rms_norm", obj, x, residual)
       → OpManager resolves best impl via policy (flagos > vendor > reference)
       → Calls the selected backend: rms_norm_flaggems(obj, x, residual)
 ```
 
-The glue layer decouples framework-specific parameters from the standardized op signatures. Vendor backends only need to implement the standard signatures — the same impl works for both sglang-plugin-FL and vllm-plugin-FL.
+The bridge layer decouples framework-specific parameters from the standardized op signatures. Vendor backends only need to implement the standard signatures — the same impl works for both sglang-plugin-FL and vllm-plugin-FL.
 
 ### Dispatch Architecture (shared with vllm-plugin-FL)
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │  SGLang AROUND Hook        │  vLLM forward_oot override     │
-│  (glue/rms_norm.py)        │  (vllm_fl/ops/layernorm.py)    │
+│  (bridge/rms_norm.py)      │  (vllm_fl/ops/layernorm.py)    │
 └────────────┬───────────────┴────────────────┬───────────────┘
              │                                │
              ▼                                ▼
@@ -623,7 +623,7 @@ The glue layer decouples framework-specific parameters from the standardized op 
    └─────────────┘  └───────────┘  └──────────────┘
 ```
 
-Chip vendors implement the **same backend interface** for both frameworks. The only framework-specific code is the glue layer, which is maintained by the plugin.
+Chip vendors implement the **same backend interface** for both frameworks. The only framework-specific code is the bridge layer, which is maintained by the plugin.
 
 ### ATen Replacement
 

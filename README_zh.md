@@ -541,7 +541,7 @@ sglang_fl/
         ├── builtin_ops.py            # 注册编排器
         ├── ops.py                    # FLBackendBase ABC（算子签名定义）
         ├── logger_manager.py         # 日志管理，支持 SGLANG_FL_LOG_LEVEL
-        ├── glue/                     # SGLang ↔ dispatch 参数转换层
+        ├── bridge/                   # SGLang ↔ dispatch 参数转换层
         │   ├── __init__.py
         │   ├── silu_and_mul.py       # forward_cuda(self, x) → call_op("silu_and_mul", obj, x)
         │   ├── rms_norm.py           # 处理 post_residual_addition
@@ -586,24 +586,24 @@ SGLang 启动时通过 setuptools entry_points 自动发现并加载插件。
 dispatch_forward() 被调用（如 RMSNorm）
   → AROUND hook 拦截
     → 检查 OOT_WHITELIST/OOT_BLACKLIST
-    → 通过 MRO 查找 glue 函数（RMSNorm → rms_norm_glue）
-    → 返回 glue 函数作为 forward 方法
-  → SGLang 使用框架参数调用 glue 函数：
-      rms_norm_glue(self, x, residual, post_residual_addition)
-    → Glue 处理 SGLang 特有参数（post_residual_addition → 合并到 residual）
-    → Glue 调用 dispatch.call_op("rms_norm", obj, x, residual)
+    → 通过 MRO 查找 bridge 函数（RMSNorm → rms_norm_bridge）
+    → 返回 bridge 函数作为 forward 方法
+  → SGLang 使用框架参数调用 bridge 函数：
+      rms_norm_bridge(self, x, residual, post_residual_addition)
+    → Bridge 处理 SGLang 特有参数（post_residual_addition → 合并到 residual）
+    → Bridge 调用 dispatch.call_op("rms_norm", obj, x, residual)
       → OpManager 通过 policy 解析最佳实现（flagos > vendor > reference）
       → 调用选中的后端：rms_norm_flaggems(obj, x, residual)
 ```
 
-Glue 层将框架特有参数与标准化算子签名解耦。厂商后端只需实现标准签名——同一份 impl 可在 sglang-plugin-FL 和 vllm-plugin-FL 上使用。
+Bridge 层将框架特有参数与标准化算子签名解耦。厂商后端只需实现标准签名——同一份 impl 可在 sglang-plugin-FL 和 vllm-plugin-FL 上使用。
 
 ### Dispatch 架构（与 vllm-plugin-FL 共享）
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │  SGLang AROUND Hook        │  vLLM forward_oot override     │
-│  (glue/rms_norm.py)        │  (vllm_fl/ops/layernorm.py)    │
+│  (bridge/rms_norm.py)      │  (vllm_fl/ops/layernorm.py)    │
 └────────────┬───────────────┴────────────────┬───────────────┘
              │                                │
              ▼                                ▼
@@ -623,7 +623,7 @@ Glue 层将框架特有参数与标准化算子签名解耦。厂商后端只需
    └─────────────┘  └───────────┘  └──────────────┘
 ```
 
-芯片厂商为两个框架实现**相同的后端接口**。唯一的框架特定代码是 glue 层，由插件维护。
+芯片厂商为两个框架实现**相同的后端接口**。唯一的框架特定代码是 bridge 层，由插件维护。
 
 ### ATen 替换
 

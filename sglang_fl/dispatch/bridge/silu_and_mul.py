@@ -1,4 +1,4 @@
-# Glue: SiluAndMul
+# Bridge: SiluAndMul
 #
 # SGLang signature: forward_cuda(self, x: Tensor) -> Tensor
 # Dispatch signature: fn(obj, x: Tensor) -> Tensor
@@ -11,6 +11,6 @@ import torch
 from sglang_fl.dispatch import call_op
 
 
-def silu_and_mul_glue(self, x: torch.Tensor) -> torch.Tensor:
+def silu_and_mul_bridge(self, x: torch.Tensor) -> torch.Tensor:
     """SGLang SiluAndMul forward → dispatch call_op("silu_and_mul", ...)."""
     return call_op("silu_and_mul", self, x)

@@ -237,7 +237,7 @@ def _init_dispatch(config: dict) -> None:
 def _make_dispatch_hook(config: dict = None):
     """Build the AROUND hook for MultiPlatformOp.dispatch_forward.
 
-    The hook intercepts dispatch_forward() for ops that have glue-layer
+    The hook intercepts dispatch_forward() for ops that have bridge-layer
     implementations. For all other ops it falls through to
     the original SGLang dispatch logic (CUDA/HIP/etc.).
 
@@ -250,10 +250,10 @@ def _make_dispatch_hook(config: dict = None):
     from sglang.srt.layers.activation import SiluAndMul
     from sglang.srt.layers.layernorm import RMSNorm
     from sglang.srt.layers.rotary_embedding import RotaryEmbedding
-    from sglang_fl.dispatch.glue import (
-        silu_and_mul_glue,
-        rms_norm_glue,
-        rotary_embedding_glue,
+    from sglang_fl.dispatch.bridge import (
+        silu_and_mul_bridge,
+        rms_norm_bridge,
+        rotary_embedding_bridge,
     )
 
     if config is None:
@@ -276,18 +276,18 @@ def _make_dispatch_hook(config: dict = None):
     if blacklist:
         logger.info(f"OOT dispatch blacklist: {blacklist}")
 
-    # Map SGLang op classes to their glue functions (via MRO inheritance)
-    _GLUE_MAP = {
-        SiluAndMul: silu_and_mul_glue,
-        RMSNorm: rms_norm_glue,
-        RotaryEmbedding: rotary_embedding_glue,
+    # Map SGLang op classes to their bridge functions (via MRO inheritance)
+    _BRIDGE_MAP = {
+        SiluAndMul: silu_and_mul_bridge,
+        RMSNorm: rms_norm_bridge,
+        RotaryEmbedding: rotary_embedding_bridge,
     }
 
-    def _find_glue(cls):
-        """Walk MRO to find a glue function for the given class."""
+    def _find_bridge(cls):
+        """Walk MRO to find a bridge function for the given class."""
         for parent in cls.__mro__:
-            if parent in _GLUE_MAP:
-                return _GLUE_MAP[parent]
+            if parent in _BRIDGE_MAP:
+                return _BRIDGE_MAP[parent]
         return None
 
     def _dispatch_hook(original_fn, self):
@@ -300,18 +300,18 @@ def _make_dispatch_hook(config: dict = None):
         if blacklist and op_name in blacklist:
             return original_fn(self)
 
-        # Find glue function for this op (supports subclasses via MRO)
-        glue_fn = _find_glue(op_cls)
-        if glue_fn is None:
+        # Find bridge function for this op (supports subclasses via MRO)
+        bridge_fn = _find_bridge(op_cls)
+        if bridge_fn is None:
             return original_fn(self)
 
         if _log_file:
             _log_file.write(f"[OOT-DISPATCH] {op_name} → dispatch\n")
             _log_file.flush()
 
-        # Return a bound method that calls the glue function
-        # The glue function has the same signature as forward_cuda
-        return glue_fn.__get__(self, op_cls)
+        # Return a bound method that calls the bridge function
+        # The bridge function has the same signature as forward_cuda
+        return bridge_fn.__get__(self, op_cls)
 
     return _dispatch_hook
 
@@ -573,7 +573,7 @@ def load_plugin():
     # 2. Initialize dispatch system (OpManager + backends + policy)
     _init_dispatch(config)
 
-    # 3. Install dispatch AROUND hook (glue layer → dispatch.call_op)
+    # 3. Install dispatch AROUND hook (bridge layer → dispatch.call_op)
     oot_enabled = _parse_bool(
         os.environ.get("SGLANG_FL_OOT_ENABLED", "1"), default=True
     )

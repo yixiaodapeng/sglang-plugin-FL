@@ -1,4 +1,4 @@
-# Glue: RotaryEmbedding
+# Bridge: RotaryEmbedding
 #
 # SGLang signature:
 #   forward_cuda(self, positions, query, key, offsets=None,
@@ -26,7 +26,7 @@ import torch
 from sglang_fl.dispatch import call_op
 
 
-def rotary_embedding_glue(
+def rotary_embedding_bridge(
     self,
     positions: torch.Tensor,
     query: torch.Tensor,
