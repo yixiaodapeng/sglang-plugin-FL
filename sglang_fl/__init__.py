@@ -411,7 +411,7 @@ def _setup_communicator_hooks():
         # Attach CommunicatorFL if world_size > 1
         if getattr(self, "world_size", 1) > 1:
             try:
-                from sglang_fl.communicator import CommunicatorFL
+                from sglang_fl.distributed.communicator import CommunicatorFL
 
                 self.fl_communicator = CommunicatorFL(
                     cpu_group=self.cpu_group,

@@ -56,7 +56,7 @@ class CommunicatorFL:
         self._flagcx_comm = None
         if self._dist_backend == "flagcx" and world_size > 1:
             try:
-                from sglang_fl.flagcx_communicator import FlagCXCommunicator
+                from sglang_fl.distributed.device_communicators.flagcx import FlagCXCommunicator
 
                 self._flagcx_comm = FlagCXCommunicator(
                     group=cpu_group,

@@ -177,7 +177,7 @@ class PlatformFL(SRTPlatform):
     def get_communicator_class(self) -> type | None:
         """Return FlagCX communicator class if flagcx backend is active."""
         if self._dist_backend == "flagcx":
-            from sglang_fl.communicator import CommunicatorFL
+            from sglang_fl.distributed.communicator import CommunicatorFL
 
             return CommunicatorFL
         return None
