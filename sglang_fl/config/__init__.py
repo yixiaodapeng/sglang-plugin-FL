@@ -16,7 +16,7 @@ def get_platform_config_path() -> Optional[Path]:
     if hasattr(torch, "npu") and torch.npu.is_available():
         return _CONFIG_DIR / "ascend.yaml"
     if torch.cuda.is_available():
-        return _CONFIG_DIR / "cuda.yaml"
+        return _CONFIG_DIR / "nvidia.yaml"
     return None
 
 

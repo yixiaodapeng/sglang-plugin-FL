@@ -527,7 +527,7 @@ sglang_fl/
     ├── config/
     │   ├── __init__.py               # YAML config loader with platform auto-detection
     │   ├── sample.yaml               # Full example config with all options documented
-    │   ├── cuda.yaml                 # CUDA platform defaults
+    │   ├── nvidia.yaml               # NVIDIA CUDA platform defaults
     │   └── ascend.yaml               # Ascend platform defaults (with blacklists)
     └── dispatch/                     # Op dispatch system (aligned with vllm-plugin-FL)
         ├── __init__.py               # Public API: call_op(), resolve_op()

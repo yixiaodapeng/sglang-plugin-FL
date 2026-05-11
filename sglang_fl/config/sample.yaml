@@ -4,7 +4,7 @@
 #   SGLANG_FL_CONFIG=/path/to/this/file.yaml python -m sglang.launch_server ...
 #
 # If SGLANG_FL_CONFIG is not set, the plugin auto-detects the platform
-# and loads config/cuda.yaml or config/ascend.yaml.
+# and loads config/nvidia.yaml or config/ascend.yaml.
 #
 # Priority chain:
 #   Environment variables (SGLANG_FL_*, SGLANG_FLAGGEMS_*)
