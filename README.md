@@ -1,6 +1,6 @@
-# sglang_fl
+# sglang-plugin-FL
 
-sglang_fl is an out-of-tree (OOT) plugin for [SGLang](https://github.com/sgl-project/sglang), built on FlagOS's unified multi-chip backend — including the unified operator library [FlagGems](https://github.com/flagos-ai/FlagGems) and the unified communication library [FlagCX](https://github.com/flagos-ai/FlagCX). It extends SGLang's inference capabilities across diverse hardware platforms. Without changing SGLang's original interfaces or usage patterns, the same command can run model inference on different chips.
+sglang-plugin-FL is an out-of-tree (OOT) plugin for [SGLang](https://github.com/sgl-project/sglang), built on FlagOS's unified multi-chip backend — including the unified operator library [FlagGems](https://github.com/flagos-ai/FlagGems) and the unified communication library [FlagCX](https://github.com/flagos-ai/FlagCX). It extends SGLang's inference capabilities across diverse hardware platforms. Without changing SGLang's original interfaces or usage patterns, the same command can run model inference on different chips.
 
 ## Overview
 
@@ -63,8 +63,8 @@ cd FlagGems && pip install .
 3. Install this plugin:
 
 ```bash
-git clone https://github.com/flagos-ai/sglang_fl
-cd sglang_fl && pip install .
+git clone https://github.com/flagos-ai/sglang-plugin-FL
+cd sglang-plugin-FL && pip install .
 ```
 
 4. (Optional) Install [FlagCX](https://github.com/flagos-ai/FlagCX) for multi-chip distributed communication:
@@ -259,7 +259,7 @@ SGLANG_FL_* env vars > YAML config (SGLANG_FL_CONFIG) > Platform auto-detect YAM
 | `SGLANG_FLAGGEMS_LOG_PATH` | — | Path to ATen replacement log file |
 | `SGLANG_FLAGGEMS_LOG_ONCE` | `1` | `1` = log each op only once, `0` = log every call |
 
-> `WHITELIST` and `BLACKLIST` are mutually exclusive. WHITELIST takes priority over YAML `flagos_blacklist`.
+> `FLAGOS_WHITELIST` and `FLAGOS_BLACKLIST` are mutually exclusive. `FLAGOS_WHITELIST` takes priority over YAML `flagos_blacklist`.
 
 #### Layer 3 — Distributed Communication
 
@@ -522,8 +522,11 @@ sglang_fl/
 └── sglang_fl/
     ├── __init__.py                   # Plugin entry: FlagGems + dispatch init + communicator hooks
     ├── platform.py                   # PlatformFL (device identity, memory, graph capture)
-    ├── communicator.py               # CommunicatorFL (FlagCX / torch.distributed wrapper)
-    ├── flagcx_communicator.py        # FlagCX-specific communicator
+    ├── distributed/                  # Communication module (aligned with vllm-plugin-FL)
+    │   ├── __init__.py
+    │   ├── communicator.py           # CommunicatorFL (FlagCX / torch.distributed wrapper)
+    │   └── device_communicators/
+    │       └── flagcx.py             # FlagCX-specific communicator
     ├── config/
     │   ├── __init__.py               # YAML config loader with platform auto-detection
     │   ├── sample.yaml               # Full example config with all options documented
@@ -532,31 +535,31 @@ sglang_fl/
     └── dispatch/                     # Op dispatch system (aligned with vllm-plugin-FL)
         ├── __init__.py               # Public API: call_op(), resolve_op()
         ├── types.py                  # OpImpl, BackendImplKind, BackendPriority
-        ├── registry.py              # Thread-safe OpRegistry
-        ├── policy.py                # SelectionPolicy + env var / YAML config
-        ├── manager.py               # OpManager: resolve, call, cache, fallback
-        ├── builtin_ops.py           # Registration orchestrator
-        ├── ops.py                   # FLBackendBase ABC (op signature definitions)
-        ├── logger_manager.py        # Logging with SGLANG_FL_LOG_LEVEL
-        ├── glue/                    # SGLang ↔ dispatch parameter translation
+        ├── registry.py               # Thread-safe OpRegistry
+        ├── policy.py                 # SelectionPolicy + env var / YAML config
+        ├── manager.py                # OpManager: resolve, call, cache, fallback
+        ├── builtin_ops.py            # Registration orchestrator
+        ├── ops.py                    # FLBackendBase ABC (op signature definitions)
+        ├── logger_manager.py         # Logging with SGLANG_FL_LOG_LEVEL
+        ├── glue/                     # SGLang ↔ dispatch parameter translation
         │   ├── __init__.py
-        │   ├── silu_and_mul.py      # forward_cuda(self, x) → call_op("silu_and_mul", obj, x)
-        │   ├── rms_norm.py          # Handles post_residual_addition
-        │   └── rotary_embedding.py  # Extracts cos/sin from cos_sin_cache, handles offsets
+        │   ├── silu_and_mul.py       # forward_cuda(self, x) → call_op("silu_and_mul", obj, x)
+        │   ├── rms_norm.py           # Handles post_residual_addition
+        │   └── rotary_embedding.py   # Extracts cos/sin from cos_sin_cache, handles offsets
         └── backends/
-            ├── __init__.py          # Backend ABC
-            ├── flaggems/            # DEFAULT backend (FlagGems Triton kernels)
+            ├── __init__.py           # Backend ABC
+            ├── flaggems/             # DEFAULT backend (FlagGems Triton kernels)
             │   ├── flaggems.py
             │   ├── register_ops.py
-            │   └── impl/            # activation.py, normalization.py, rotary.py
-            ├── reference/           # REFERENCE backend (PyTorch native, always available)
+            │   └── impl/             # activation.py, normalization.py, rotary.py
+            ├── reference/            # REFERENCE backend (PyTorch native, always available)
             │   ├── reference.py
             │   ├── register_ops.py
-            │   └── impl/            # activation.py, normalization.py, rotary.py
-            └── vendor/              # VENDOR backends (auto-discovered)
-                ├── ascend/          # Huawei Ascend NPU (torch_npu)
-                ├── cuda/            # NVIDIA CUDA (sgl_kernel)
-                └── template/        # Template for new vendors
+            │   └── impl/             # activation.py, normalization.py, rotary.py
+            └── vendor/               # VENDOR backends (auto-discovered)
+                ├── ascend/           # Huawei Ascend NPU (torch_npu)
+                ├── cuda/             # NVIDIA CUDA (sgl_kernel)
+                └── template/         # Template for new vendors
 ```
 
 ## How It Works
@@ -582,7 +585,7 @@ The core mechanism uses an AROUND hook on `MultiPlatformOp.dispatch_forward()` c
 ```
 dispatch_forward() called for an op (e.g. RMSNorm)
   → AROUND hook intercepts
-    → Check WHITELIST/BLACKLIST
+    → Check OOT_WHITELIST/OOT_BLACKLIST
     → Find glue function via MRO (RMSNorm → rms_norm_glue)
     → Return glue function as the forward method
   → SGLang calls the glue function with framework args:
@@ -605,8 +608,7 @@ The glue layer decouples framework-specific parameters from the standardized op 
              │                                │
              ▼                                ▼
 ┌─────────────────────────────────────────────────────────────┐
-│               dispatch.call_op("rms_norm", obj, x, residual)│
-│               ───────────────────────────────────────────── │
+│  dispatch.call_op("rms_norm", obj, x, residual)             │
 │  OpManager → SelectionPolicy → OpRegistry → resolve impl    │
 └──────────────────────────┬──────────────────────────────────┘
                            │
