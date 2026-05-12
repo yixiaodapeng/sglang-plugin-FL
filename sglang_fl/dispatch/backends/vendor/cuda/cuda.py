@@ -33,10 +33,14 @@ class CudaBackend(Backend):
                 if not torch.cuda.is_available() or torch.cuda.device_count() == 0:
                     CudaBackend._available = False
                     return False
-                # Verify this is a real NVIDIA GPU (not MACA/MUSA etc.)
-                import sgl_kernel  # noqa: F401
+                # Use platform's vendor_name from FlagGems DeviceDetector
+                # to distinguish real NVIDIA GPUs from CUDA-alike devices
+                # (Iluvatar MACA, MetaX MUSA, etc.)
+                from sglang.srt.platforms import current_platform
 
-                CudaBackend._available = True
+                CudaBackend._available = (
+                    getattr(current_platform, "_vendor_name", None) == "nvidia"
+                )
             except (ImportError, Exception):
                 CudaBackend._available = False
         return CudaBackend._available
