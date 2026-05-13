@@ -309,16 +309,32 @@ class OpManager:
                 return impl.impl_id
         return "unknown"
 
-    def _log_first_call(self, op_name: str, impl_id: str, mode: str = "default") -> None:
+    def _log_first_call(
+        self, op_name: str, impl_id: str, mode: str = "default"
+    ) -> None:
         last = self._called_ops.get(op_name)
         if last != impl_id:
             with self._lock:
                 if self._called_ops.get(op_name) != impl_id:
                     if last is None:
-                        logger.info(f"Op '{op_name}' using '{impl_id}' (mode={mode})")
+                        msg = f"Op '{op_name}' using '{impl_id}' (mode={mode})"
                     else:
-                        logger.info(f"Op '{op_name}' switched to '{impl_id}' (mode={mode})")
+                        msg = f"Op '{op_name}' switched to '{impl_id}' (mode={mode})"
+                    logger.info(msg)
                     self._called_ops[op_name] = impl_id
+                    # Also write to dispatch log file if configured
+                    self._write_dispatch_log(op_name, impl_id)
+
+    def _write_dispatch_log(self, op_name: str, impl_id: str) -> None:
+        """Write FLA op dispatch info to SGLANG_FL_DISPATCH_LOG if configured."""
+        log_path = os.environ.get("SGLANG_FL_DISPATCH_LOG", "").strip()
+        if log_path:
+            try:
+                with open(log_path, "a") as f:
+                    f.write(f"[OOT-DISPATCH] {op_name} → {impl_id}\n")
+                    f.flush()
+            except Exception:
+                pass
 
 
 # Global singleton

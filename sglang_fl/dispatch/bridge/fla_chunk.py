@@ -1,0 +1,45 @@
+# Copyright (c) 2026 BAAI. All rights reserved.
+"""Bridge for FLA chunk_gated_delta_rule function."""
+
+from typing import Optional
+import torch
+
+from sglang_fl.dispatch import call_op
+
+
+def chunk_gated_delta_rule_bridge(
+    q: torch.Tensor,
+    k: torch.Tensor,
+    v: torch.Tensor,
+    g: torch.Tensor,
+    beta: torch.Tensor,
+    scale: float = None,
+    initial_state: torch.Tensor = None,
+    initial_state_indices: torch.Tensor = None,
+    cu_seqlens: Optional[torch.LongTensor] = None,
+    head_first: bool = False,
+    use_qk_l2norm_in_kernel: bool = False,
+):
+    """
+    Bridge function for chunk_gated_delta_rule.
+
+    Dispatches to backend implementations via call_op().
+    Signature matches sglang.srt.layers.attention.fla.chunk.chunk_gated_delta_rule.
+    """
+    if scale is None:
+        scale = k.shape[-1] ** -0.5
+
+    return call_op(
+        "chunk_gated_delta_rule",
+        q=q,
+        k=k,
+        v=v,
+        g=g,
+        beta=beta,
+        scale=scale,
+        initial_state=initial_state,
+        initial_state_indices=initial_state_indices,
+        cu_seqlens=cu_seqlens,
+        head_first=head_first,
+        use_qk_l2norm_in_kernel=use_qk_l2norm_in_kernel,
+    )

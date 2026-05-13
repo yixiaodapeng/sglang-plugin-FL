@@ -213,6 +213,8 @@ def _init_dispatch(config: dict) -> None:
             "SiluAndMul": "silu_and_mul",
             "RMSNorm": "rms_norm",
             "RotaryEmbedding": "rotary_embedding",
+            "TopK": "topk",
+            "UnquantizedFusedMoEMethod": "fused_moe",
         }
         for key, val in op_backends.items():
             op_name = _CLASS_TO_OP.get(key, key)  # class name -> op_name, or keep as-is
@@ -248,12 +250,19 @@ def _make_dispatch_hook(config: dict = None):
       - Empty (default): all registered ops use OOT dispatch.
     """
     from sglang.srt.layers.activation import SiluAndMul
-    from sglang.srt.layers.layernorm import RMSNorm
+    from sglang.srt.layers.layernorm import RMSNorm, GemmaRMSNorm
     from sglang.srt.layers.rotary_embedding import RotaryEmbedding
+    from sglang.srt.layers.rotary_embedding.mrope import MRotaryEmbedding
+    from sglang.srt.layers.moe.topk import TopK
+    from sglang.srt.layers.quantization.unquant import UnquantizedFusedMoEMethod
     from sglang_fl.dispatch.bridge import (
         silu_and_mul_bridge,
         rms_norm_bridge,
+        gemma_rms_norm_bridge,
         rotary_embedding_bridge,
+        mrotary_embedding_bridge,
+        topk_bridge,
+        fused_moe_bridge,
     )
 
     if config is None:
@@ -280,7 +289,11 @@ def _make_dispatch_hook(config: dict = None):
     _BRIDGE_MAP = {
         SiluAndMul: silu_and_mul_bridge,
         RMSNorm: rms_norm_bridge,
+        GemmaRMSNorm: gemma_rms_norm_bridge,
         RotaryEmbedding: rotary_embedding_bridge,
+        MRotaryEmbedding: mrotary_embedding_bridge,
+        TopK: topk_bridge,
+        UnquantizedFusedMoEMethod: fused_moe_bridge,
     }
 
     def _find_bridge(cls):
@@ -303,7 +316,10 @@ def _make_dispatch_hook(config: dict = None):
         # Find bridge function for this op (supports subclasses via MRO)
         bridge_fn = _find_bridge(op_cls)
         if bridge_fn is None:
-            return original_fn(self)
+            # No bridge registered: return forward_cuda directly to bypass dispatch_forward.
+            # This allows unregistered OOT ops (e.g., MoE before bridge is added) to use
+            # their native CUDA implementation instead of falling into forward_native.
+            return self.forward_cuda
 
         if _log_file:
             _log_file.write(f"[OOT-DISPATCH] {op_name} → dispatch\n")
@@ -583,6 +599,10 @@ def load_plugin():
             _make_dispatch_hook(config),
             HookType.AROUND,
         )
+        # Patch FLA functions to use dispatch mechanism
+        from sglang_fl.dispatch.fla_patch import patch_fla_functions
+
+        patch_fla_functions()
     else:
         logger.info("Layer 2 (Fused Ops) disabled (SGLANG_FL_OOT_ENABLED=0)")
 
