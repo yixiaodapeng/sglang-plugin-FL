@@ -317,7 +317,7 @@ class PolicyManager:
         elif platform_policy:
             strict = platform_policy.strict
         else:
-            strict = False
+            strict = True
 
         if env_deny_str:
             deny_vendors = self._parse_csv_set(env_deny_str)
