@@ -1,8 +1,0 @@
-prefer: flagos
-# op_backends: (use defaults — flagos > reference)
-# oot_blacklist: []
-
-# FlagGems ATen blacklist: ops that FlagGems doesn't handle correctly
-flagos_blacklist:
-  - count_nonzero  # sparse_coo permute dimension mismatch in MoE expert location
-  - index_put_     # broadcast shape mismatch on 4D mamba pool tensors

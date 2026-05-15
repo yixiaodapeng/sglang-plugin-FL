@@ -22,4 +22,4 @@ sglang_fl = "sglang_fl:load_plugin"
 include = ["sglang_fl*"]
 
 [tool.setuptools.package-data]
-"sglang_fl.config" = ["*.yaml"]
+"sglang_fl.dispatch.config" = ["*.yaml"]

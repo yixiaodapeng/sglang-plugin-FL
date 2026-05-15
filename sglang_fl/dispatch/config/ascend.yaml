@@ -1,3 +1,2 @@
-# Default configuration for Ascend NPU platform
+# SGLang-FL Dispatch Configuration for Ascend NPU
 prefer: flagos
-strict: false

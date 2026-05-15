@@ -1,39 +1,24 @@
-# Dispatch config loader — platform auto-detection and YAML loading.
+# Hardware-specific operator configuration loader.
+#
+# This module provides automatic loading of operator configurations based on
+# the detected hardware platform. See utils.py for implementation details.
 
-import logging
-import os
-from pathlib import Path
-from typing import Optional
+from sglang_fl.dispatch.config.utils import (
+    get_config_path,
+    get_effective_config,
+    get_flagos_blacklist,
+    get_oot_blacklist,
+    get_per_op_order,
+    get_platform_name,
+    load_platform_config,
+)
 
-logger = logging.getLogger(__name__)
-
-_CONFIG_DIR = Path(__file__).parent
-
-
-def get_config_path() -> Optional[Path]:
-    """
-    Get the platform-specific config file path.
-
-    Priority:
-    1. SGLANG_FL_PLATFORM env var (force platform)
-    2. Auto-detect via torch
-    """
-    forced = os.environ.get("SGLANG_FL_PLATFORM", "").strip().lower()
-    if forced:
-        path = _CONFIG_DIR / f"{forced}.yaml"
-        if path.is_file():
-            return path
-        return None
-
-    # Auto-detect
-    try:
-        import torch
-
-        if hasattr(torch, "npu") and torch.npu.is_available():
-            return _CONFIG_DIR / "ascend.yaml"
-        if torch.cuda.is_available():
-            return _CONFIG_DIR / "nvidia.yaml"
-    except Exception:
-        pass
-
-    return None
+__all__ = [
+    "get_platform_name",
+    "get_config_path",
+    "load_platform_config",
+    "get_per_op_order",
+    "get_flagos_blacklist",
+    "get_oot_blacklist",
+    "get_effective_config",
+]

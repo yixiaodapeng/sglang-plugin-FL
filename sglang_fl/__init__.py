@@ -101,9 +101,9 @@ def _build_config() -> dict:
         > YAML config (SGLANG_FL_CONFIG or platform auto-detect)
           > code defaults
     """
-    from sglang_fl.config import load_config
+    from sglang_fl.dispatch.config import get_effective_config
 
-    yaml_cfg = load_config()
+    yaml_cfg = get_effective_config()
 
     # prefer: SGLANG_FL_PREFER > yaml.prefer > "flagos"
     prefer = (

@@ -4,7 +4,9 @@ from __future__ import annotations
 
 from typing import Optional
 
+import flag_gems
 import torch
+from sglang.srt.layers.moe.topk import StandardTopKOutput
 
 
 def topk_flaggems(
@@ -16,10 +18,9 @@ def topk_flaggems(
     expert_location_dispatch_info=None,
 ):
     """
-    TopK routing using FlagGems fused_moe topk_softmax.
+    TopK routing using flag_gems.topk_softmax.
 
-    For now, we delegate to SGLang's select_experts (same as CUDA vendor).
-    Future: use flag_gems.fused.fused_moe.topk_softmax or grouped_topk.
+    Reference: vllm-plugin-FL/vllm_fl/ops/_fl_ops.py
 
     Args:
         obj: The TopK instance
@@ -31,16 +32,24 @@ def topk_flaggems(
     Returns:
         TopKOutput (StandardTopKOutput format)
     """
-    # TODO: Use FlagGems' topk_softmax when available
-    # For now, fall back to SGLang's select_experts
-    from sglang.srt.layers.moe.topk import select_experts
+    topk = obj.topk_config.topk
+    renormalize = obj.topk_config.renormalize
 
-    obj.topk_config.torch_native = False
-    return select_experts(
-        hidden_states=hidden_states,
-        layer_id=obj.layer_id,
-        router_logits=router_logits,
-        topk_config=obj.topk_config,
-        num_token_non_padded=num_token_non_padded,
-        expert_location_dispatch_info=expert_location_dispatch_info,
+    M = hidden_states.shape[0]
+    topk_weights = torch.empty(
+        M, topk, dtype=torch.float32, device=hidden_states.device
+    )
+    topk_ids = torch.empty(M, topk, dtype=torch.int32, device=hidden_states.device)
+    token_expert_indices = torch.empty(
+        M, topk, dtype=torch.int32, device=hidden_states.device
+    )
+
+    flag_gems.topk_softmax(
+        topk_weights, topk_ids, token_expert_indices, router_logits, renormalize
+    )
+
+    return StandardTopKOutput(
+        topk_weights=topk_weights,
+        topk_ids=topk_ids,
+        token_expert_indices=token_expert_indices,
     )

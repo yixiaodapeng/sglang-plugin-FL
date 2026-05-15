@@ -1,3 +1,2 @@
-# Default configuration for CUDA platform
+# SGLang-FL Dispatch Configuration for NVIDIA GPU
 prefer: flagos
-strict: false
